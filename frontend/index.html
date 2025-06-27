@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Review Service</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-book-open"></i>
+                    <h1>BookReview</h1>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openAddBookModal()">
+                        <i class="fas fa-plus"></i>
+                        Add Book
+                    </button>
+                    <div class="api-status" id="apiStatus">
+                        <i class="fas fa-circle"></i>
+                        <span>API Status</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Stats Section -->
+            <section class="stats-section">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalBooks">0</h3>
+                            <p>Total Books</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalReviews">0</h3>
+                            <p>Total Reviews</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="avgRating">0.0</h3>
+                            <p>Average Rating</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="cacheStatus">Unknown</h3>
+                            <p>Cache Status</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Search Section -->
+            <section class="search-section">
+                <div class="search-container">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="Search books by title or author...">
+                    </div>
+                    <button class="btn btn-secondary" onclick="refreshBooks()">
+                        <i class="fas fa-refresh"></i>
+                        Refresh
+                    </button>
+                </div>
+            </section>
+
+            <!-- Books Section -->
+            <section class="books-section">
+                <div class="section-header">
+                    <h2>Books Collection</h2>
+                    <div class="view-toggle">
+                        <button class="view-btn active" data-view="grid" onclick="toggleView('grid')">
+                            <i class="fas fa-th-large"></i>
+                        </button>
+                        <button class="view-btn" data-view="list" onclick="toggleView('list')">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="loading" id="booksLoading">
+                    <div class="spinner"></div>
+                    <p>Loading books...</p>
+                </div>
+                
+                <div class="books-grid" id="booksContainer">
+                    <!-- Books will be loaded here -->
+                </div>
+                
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <i class="fas fa-book-open"></i>
+                    <h3>No books found</h3>
+                    <p>Start by adding your first book to the collection</p>
+                    <button class="btn btn-primary" onclick="openAddBookModal()">
+                        <i class="fas fa-plus"></i>
+                        Add First Book
+                    </button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Add Book Modal -->
+    <div class="modal" id="addBookModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Book</h3>
+                <button class="close-btn" onclick="closeAddBookModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="addBookForm" class="modal-body">
+                <div class="form-group">
+                    <label for="bookTitle">Title *</label>
+                    <input type="text" id="bookTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="bookAuthor">Author *</label>
+                    <input type="text" id="bookAuthor" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bookISBN">ISBN</label>
+                        <input type="text" id="bookISBN" placeholder="9780123456789">
+                    </div>
+                    <div class="form-group">
+                        <label for="bookYear">Publication Year</label>
+                        <input type="number" id="bookYear" min="1000" max="2030">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="bookDescription">Description</label>
+                    <textarea id="bookDescription" rows="3" placeholder="Brief description of the book..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddBookModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                        Add Book
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Book Details Modal -->
+    <div class="modal" id="bookDetailsModal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3 id="bookDetailsTitle">Book Details</h3>
+                <button class="close-btn" onclick="closeBookDetailsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="book-details-content">
+                    <div class="book-info">
+                        <div class="book-meta" id="bookMeta">
+                            <!-- Book metadata will be loaded here -->
+                        </div>
+                    </div>
+                    <div class="reviews-section">
+                        <div class="reviews-header">
+                            <h4>Reviews</h4>
+                            <button class="btn btn-primary btn-sm" onclick="openAddReviewForm()">
+                                <i class="fas fa-plus"></i>
+                                Add Review
+                            </button>
+                        </div>
+                        
+                        <div class="add-review-form" id="addReviewForm" style="display: none;">
+                            <form id="reviewForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="reviewerName">Your Name *</label>
+                                        <input type="text" id="reviewerName" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="reviewRating">Rating *</label>
+                                        <div class="rating-input">
+                                            <div class="stars" id="ratingStars">
+                                                <i class="fas fa-star" data-rating="1"></i>
+                                                <i class="fas fa-star" data-rating="2"></i>
+                                                <i class="fas fa-star" data-rating="3"></i>
+                                                <i class="fas fa-star" data-rating="4"></i>
+                                                <i class="fas fa-star" data-rating="5"></i>
+                                            </div>
+                                            <input type="hidden" id="reviewRating" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="reviewComment">Comment</label>
+                                    <textarea id="reviewComment" rows="3" placeholder="Share your thoughts about this book..."></textarea>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="closeAddReviewForm()">Cancel</button>
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-plus"></i>
+                                        Add Review
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div class="reviews-list" id="reviewsList">
+                            <!-- Reviews will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
