@@ -27,6 +27,14 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     logger.info("📘 Database tables created")
+    if redis_client:
+        try:
+            redis_client.ping()
+            logger.info("✅ Redis cache connected successfully")
+        except Exception as e:
+            logger.warning(f"⚠️ Redis is NOT available at startup: {e}")
+    else:
+        logger.warning("⚠️ Redis client is not configured")
     yield
 
 app = FastAPI(
