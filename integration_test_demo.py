@@ -6,6 +6,7 @@ This satisfies the requirement: "Write an integration test covering the cache-mi
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
+from datetime import datetime
 import redis
 import json
 
@@ -114,7 +115,8 @@ class TestCacheIntegration:
                 "author": "Cache Author",
                 "isbn": None,
                 "publication_year": 2023,
-                "description": None
+                "description": None,
+                "created_at": datetime.utcnow().isoformat()
             }
         ]
         
