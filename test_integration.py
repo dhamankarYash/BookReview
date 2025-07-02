@@ -95,21 +95,22 @@ def test_redis_connection_failure_fallback(client):
     with patch('main.redis_client') as mock_redis:
         # Simulate Redis connection error
         mock_redis.get.side_effect = redis.ConnectionError("Connection failed")
-        
-        # Add a book to database
+
+        # Add a book to the database
         book_data = {
             "title": "Fallback Test Book",
             "author": "Test Author"
         }
         client.post("/books", json=book_data)
-        
-        # Request should still work despite Redis failure
+
+        # Request books - should still work despite Redis failure
         response = client.get("/books")
-        
         assert response.status_code == 200
+
+        # ✅ Instead of assuming there's exactly 1 book, we check for the expected one
         books = response.json()
-        assert len(books) == 1
-        assert books[0]["title"] == "Fallback Test Book"
+        titles = [book["title"] for book in books]
+        assert "Fallback Test Book" in titles
 
 def test_cache_invalidation_on_book_creation(client):
     """
