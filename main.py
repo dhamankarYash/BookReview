@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     logger.info("📘 Database tables created")
+
     if redis_client:
         try:
             redis_client.ping()
@@ -35,6 +36,7 @@ async def lifespan(app: FastAPI):
             logger.warning(f"⚠️ Redis is NOT available at startup: {e}")
     else:
         logger.warning("⚠️ Redis client is not configured")
+
     yield
 
 app = FastAPI(
@@ -108,11 +110,35 @@ async def get_book_reviews(book_id: int, db: Session = Depends(get_db)):
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
 
+    cache_key = f"reviews:book:{book_id}"
+
+    if redis_client:
+        try:
+            cached_reviews = redis_client.get(cache_key)
+            if cached_reviews:
+                logger.info(f"📦 Cache hit - reviews for book {book_id}")
+                return json.loads(cached_reviews)
+        except Exception as e:
+            logger.warning(f"⚠️ Redis unavailable during GET: {e}")
+
     try:
-        return get_reviews_by_book(db, book_id)
+        reviews = get_reviews_by_book(db, book_id)
+        result = [Review.model_validate(r) for r in reviews]
+
+        if redis_client:
+            try:
+                redis_client.setex(
+                    cache_key, 300, json.dumps([r.model_dump() for r in result], default=str)
+                )
+                logger.info(f"✅ Cached reviews for book {book_id}")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to cache reviews: {e}")
+
+        return result
     except Exception as e:
-        logger.error(f"Error fetching reviews: {str(e)}")
+        logger.error(f"❌ Error fetching reviews: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to fetch reviews")
+
 
 @app.post("/books/{book_id}/reviews", response_model=Review, status_code=201)
 async def add_book_review(book_id: int, review: ReviewCreate, db: Session = Depends(get_db)):
@@ -121,10 +147,21 @@ async def add_book_review(book_id: int, review: ReviewCreate, db: Session = Depe
         raise HTTPException(status_code=404, detail="Book not found")
 
     try:
-        return create_review(db, review, book_id)
+        new_review = create_review(db, review, book_id)
+
+        # Invalidate cached reviews
+        if redis_client:
+            try:
+                redis_client.delete(f"reviews:book:{book_id}")
+                logger.info(f"🧹 Invalidated review cache for book {book_id}")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to invalidate review cache: {e}")
+
+        return new_review
     except Exception as e:
         logger.error(f"Error creating review: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to create review")
+
 
 @app.get("/health")
 async def health_check():
