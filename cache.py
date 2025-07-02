@@ -3,6 +3,8 @@
 import redis
 import logging
 
+logger = logging.getLogger(__name__)
+
 try:
     # Create a Redis client connection
     redis_client = redis.Redis(
