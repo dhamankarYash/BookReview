@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Index
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime,UTC
 from database import Base  # ✅ Use the shared Base defined in database.py
 
 class Book(Base):
@@ -12,7 +12,7 @@ class Book(Base):
     isbn = Column(String(13), unique=True, nullable=True)
     publication_year = Column(Integer, nullable=True)
     description = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     # Relationship
     reviews = relationship("Review", back_populates="book", cascade="all, delete-orphan")
@@ -25,7 +25,7 @@ class Review(Base):
     reviewer_name = Column(String(255), nullable=False)
     rating = Column(Integer, nullable=False)
     comment = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     # Relationship
     book = relationship("Book", back_populates="reviews")
